@@ -1,0 +1,5 @@
+out/*
+*.axf
+*.bin
+*.map
+*.o
