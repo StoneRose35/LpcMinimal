@@ -13,16 +13,22 @@
 
 
 void setPwmValue(char);
+void handleNoteOff(void);
 
 
 volatile uint32_t mrt_counter;
 volatile uint32_t phase;
-volatile char wave;
+volatile unsigned short wave;
+volatile char amplitude;
 
 /*midi controller variables*/
 volatile char midiNotes = 0;
 volatile char midiCntr = 0;
-volatile char lastNote = 0;
+volatile char playedNote = 0;
+volatile char lastStatus = 0x80;
+volatile char noteBfr;
+volatile char notes[16];
+
 
 void MRT_IRQHandler(void)
 {
@@ -38,6 +44,8 @@ void MRT_IRQHandler(void)
     phase += TONE_FREQ/SAMPLING_FREQ*0xFFFFFFFFUL;
 
     wave = phase >> (32 - DAC_RES); // output a aliased sawtooth
+    wave *= amplitude;
+    wave = wave >> 8;
     setPwmValue(wave);
     *MRT_STAT1 = MRT_STAT_INTFLAG;
   }
@@ -51,10 +59,87 @@ void UART0_IRQHandler(void)
 	{
 		/*read midi message*/
 		byteRead = *RXDAT0 & 0xFF;
+		if (byteRead & 0x80) /*check for status byte*/
+		{
+			midiCntr=0;
+			lastStatus = byteRead & 0xF0;
+		}
+		else
+		{
+			if (midiCntr==0)
+			{
+				noteBfr = byteRead;
+				midiCntr++;
+			}
+			else if (midiCntr==1)
+			{
+				switch (lastStatus)
+				{
+					case MIDI_NOTEOFF:
+
+						if (midiNotes > 0)
+						{
+							handleNoteOff();
+						}
+
+						break;
+					case MIDI_NOTEON:
+						if (byteRead == 0)
+						{
+							if (midiNotes > 0)
+							{
+								handleNoteOff();
+							}
+						}
+						else
+						{
+							amplitude = 255;
+							*(notes+midiNotes) = noteBfr;
+							midiNotes++;
+							/*set note, currently implementing highest first*/
+							if (noteBfr > playedNote)
+							{
+								playedNote = noteBfr;
+							}
+
+						}
+						break;
+					default:
+						break;
+				}
+				midiCntr=0;
+			}
+		}
 
 	}
 }
 
+
+void handleNoteOff(void)
+{
+	for (char c=0;c<midiNotes;c++)
+	{
+		if (*(notes+c)==noteBfr)
+		{
+			for(char cc=c;c<15;cc++)
+			{
+				*(notes+cc) = *(notes + cc + 1);
+			}
+
+			*(notes+15) = 0;
+		}
+	}
+	midiNotes--;
+	if (midiNotes > 0)
+	{
+		playedNote = *(notes + midiNotes-1);
+	}
+	else
+	{
+		playedNote=0;
+		amplitude=0;
+	}
+}
 
 void initTimer()
 {
