@@ -2,8 +2,6 @@
 #ifndef __CHIP_H_
 #define __CHIP_H_
 
-typedef unsigned int uint32_t;
-
 
 /** minimal register and constant definitions
  *
@@ -17,17 +15,8 @@ typedef unsigned int uint32_t;
 #define CLOCK_FREQ (12000000)
 #define MRT_IRQN 10
 
-#define SAMPLING_FREQ 21000
-#define DAC_RES 6 /* resolution in bits, should be 8 maximum*/
-#define TONE_FREQ 333
-
-#define PI 3.14159
-
 #define UART_CLOCK_DIV CLOCK_FREQ/31250/16
 #define RXRDY 1
-
-#define MIDI_NOTEOFF 0x80
-#define MIDI_NOTEON 0x90
 
 #define SCT_UNIFY 0
 
