@@ -13,26 +13,26 @@
 #include "synth.h"
 
 
-void setPwmValue(char);
+void setPwmValue(uint32_t);
 void handleNoteOff(void);
 uint32_t sineVal(uint32_t);
 
 
 volatile uint32_t mrt_counter;
 volatile uint32_t phase;
-volatile unsigned short wave;
-volatile char amplitude;
+volatile uint16_t wave;
+volatile uint8_t amplitude;
 
 /*midi controller variables*/
-volatile char midiNotes = 0;
-volatile char midiCntr = 0;
-volatile char playedNote = 0;
-volatile char lastStatus = 0x80;
-volatile char noteBfr;
-volatile char notes[16];
+volatile uint8_t midiNotes = 0;
+volatile uint8_t midiCntr = 0;
+volatile uint8_t playedNote = 0;
+volatile uint8_t lastStatus = 0x80;
+volatile uint8_t noteBfr;
+volatile uint8_t notes[16];
 
 const uint32_t phaseIncrements[120] = { 0x00217057, 0x00236d5d, 0x002588a8, 0x0027c404, 0x002a215a, 0x002ca2af, 0x002f4a26, 0x00321a04, 0x003514b1, 0x00383cb8, 0x003b94ca, 0x003f1fc5, 0x0042e0ae, 0x0046daba, 0x004b1150, 0x004f8809, 0x005442b4, 0x0059455e, 0x005e944c, 0x00643409, 0x006a2963, 0x00707970, 0x00772995, 0x007e3f8a, 0x0085c15c, 0x008db575, 0x009622a1, 0x009f1012, 0x00a88569, 0x00b28abc, 0x00bd2899, 0x00c86813, 0x00d452c6, 0x00e0f2e0, 0x00ee532b, 0x00fc7f15, 0x010b82b9, 0x011b6aeb, 0x012c4542, 0x013e2024, 0x01510ad3, 0x01651578, 0x017a5132, 0x0190d026, 0x01a8a58c, 0x01c1e5c0, 0x01dca657, 0x01f8fe2a, 0x02170572, 0x0236d5d6, 0x02588a84, 0x027c4048, 0x02a215a6, 0x02ca2af0, 0x02f4a264, 0x0321a04c, 0x03514b18, 0x0383cb81, 0x03b94cae, 0x03f1fc55, 0x042e0ae5, 0x046dabac, 0x04b11508, 0x04f88091, 0x05442b4c, 0x059455e0, 0x05e944c9, 0x06434099, 0x06a29630, 0x07079703, 0x0772995d, 0x07e3f8ab, 0x085c15ca, 0x08db5758, 0x09622a11, 0x09f10123, 0x0a885699, 0x0b28abc0, 0x0bd28992, 0x0c868132, 0x0d452c61, 0x0e0f2e07, 0x0ee532bb, 0x0fc7f157, 0x10b82b94, 0x11b6aeb1, 0x12c45422, 0x13e20246, 0x1510ad33, 0x16515780, 0x17a51325, 0x190d0264, 0x1a8a58c3, 0x1c1e5c0f, 0x1dca6576, 0x1f8fe2ae, 0x21705728, 0x236d5d63, 0x2588a844, 0x27c4048d, 0x2a215a67, 0x2ca2af01, 0x2f4a264a, 0x321a04c9, 0x3514b186, 0x383cb81e, 0x3b94caed, 0x3f1fc55c, 0x42e0ae51, 0x46dabac6, 0x4b115088, 0x4f88091b, 0x5442b4cf, 0x59455e02, 0x5e944c95, 0x64340992, 0x6a29630c, 0x7079703d, 0x772995db, 0x7e3f8ab8};
-volatile uint32_t p_i;
+volatile uint32_t p_i = phaseIncrements[60];
 
 void MRT_IRQHandler(void)
 {
@@ -41,19 +41,21 @@ void MRT_IRQHandler(void)
     *MRT_STAT0 = MRT_STAT_INTFLAG;      /* clear interrupt flag */
     mrt_counter++;
   }
-  else if ( *MRT_STAT1 & MRT_STAT_INTFLAG ) 
-  { /*sampling interrupt, compute next phase and the next waveform value and put it in dac*/
-   /*increment is TONE_FREQ/SAMPLING_FREQ*RESOLUTION */
-   
+
+  if ( *MRT_STAT1 & MRT_STAT_INTFLAG )
+  { //sampling interrupt, compute next phase and the next waveform value and put it in dac
+   //increment is TONE_FREQ/SAMPLING_FREQ*RESOLUTION
+	//*NOT0 = 0x1 << 2;
     phase += p_i; //TONE_FREQ/SAMPLING_FREQ*0xFFFFFFFFUL;
 
-    //wave = phase >> (32 - DAC_RES); // output a aliased sawtooth
+    wave = phase >> (32 - DAC_RES); // output a aliased sawtooth
     uint32_t p_bfr = phase >> 16;
-    wave = sineVal(p_bfr) >> 16 - DAC_RES;
+    //wave = sineVal(p_bfr) >> 16 - DAC_RES;
     wave *= amplitude;
     wave = wave >> 8;
     setPwmValue(wave);
     *MRT_STAT1 = MRT_STAT_INTFLAG;
+    //*NOT0 = 0x1 << 2;
   }
   return;
 }
@@ -148,6 +150,32 @@ void handleNoteOff(void)
 	}
 }
 
+void setupPll()
+{
+	*PDRUNCFG &= ~(0x1 << 7); /*power up pll*/
+
+	*SYSPLLCLKSEL &= ~0x3; /*set IRC as PLL input*/
+	*SYSPLLCLKUEN = 0;
+	*SYSPLLCLKUEN = 1;
+
+	// Set Mutliplication values M: 5, P: 2
+	// resulting in a frequency of the current controlled osc of 12Mhz*M*2*P = 240MHz
+	// output Frequency is 12MHz*5 = 60 MHz which is divided again to provide the system clock
+	*SYSPLLCTRL = 0x4 | (0x1 << 5);
+
+	while (*SYSPLLSTAT & 0x1 == 0)
+	{}
+
+	// set PLL output as main clock source
+	*MAINCLKSEL = 0x3;
+    *MAINCLKUEN = 0x0;
+    *MAINCLKUEN = 0x1;
+
+    // divide PLL clock by 2 to get 30 MHz
+    *SYSAHBCLKDIV = 0x2;
+
+}
+
 void initTimer()
 {
           mrt_counter = 0;
@@ -159,12 +187,20 @@ void initTimer()
 	  
 }
 
-void setDelay(uint32_t delay,char channelNr) 
+void setDelay0(uint32_t delay)
 {
-	*(MRT_INTVAL0 + channelNr*0x10) = delay; 
-	*(MRT_INTVAL0 + channelNr*0x10) |= 0x1UL<<31; 
-	*(MRT_CTRL0 +  + channelNr*0x10) = 1;
+	*(MRT_INTVAL0) = delay;
+	*(MRT_INTVAL0) |= 0x1UL<<31;
+	*(MRT_CTRL0) = 1;
 }
+
+void setDelay1(uint32_t delay)
+{
+	*(MRT_INTVAL1) = delay;
+	*(MRT_INTVAL1) |= 0x1UL<<31;
+	*(MRT_CTRL1) = 1;
+}
+
 
 void runTimer(uint32_t delay)
 {
@@ -188,7 +224,7 @@ void initPwmDac()
 	*PINASSIGN6 |= 0x3<<24UL;
 	
 	// SET OUTPUT 0 on Event 0 (PWM Compare match) and clear on event 1 (counter limit)
-	*SCT_OUT0_SET |= 0x1 << 0; 
+	*SCT_OUT0_SET |= 0x1 << 0;
 	*SCT_OUT0_CLR |= 0x1 << 1;
 	
 	// unify counters to get a single 32bit counter 
@@ -201,10 +237,10 @@ void initPwmDac()
 	*SCT_COUNT = 0;
 	
 	// initialize to get zero analog voltage, i.e. generate a square wave on the output
-	SCT_MATCH0->VAL = 0xFF >> 1;
+	SCT_MATCH0->REG_VAL = (uint8_t)(0xFF >> 1+8-DAC_RES);
 	
 	// initialize resolution 
-	SCT_MATCH1->VAL = 0xFF  >> 8-DAC_RES;
+	SCT_MATCH1->REG_VAL = 0xFF  >> 8-DAC_RES;
 	
 	// Configuration for event 0: PWM Comparison match
 	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, CNTOUT_0 is selected 0x1 << 5
@@ -215,9 +251,9 @@ void initPwmDac()
 	*SCT_EV1_CTRL |= (0x1 << 12) | (0x1 << 21) | (0x1 << 0);
 	
 	// set halt to zero to start the counter
-	*SCT_CTRL &= ~(0x0 << 2); 
+	*SCT_CTRL &= ~(0x0 << 2);
 	
-	phase = 0.0;
+	phase = 0;
 }
 
 void initMidiUart()
@@ -247,9 +283,9 @@ void initMidiUart()
     *BRG0 = 0x0;
 }
 
-void setPwmValue(char val)
+void setPwmValue(uint32_t val)
 {
-	SCT_MATCHREL0->VAL = val;
+	SCT_MATCHREL0->REG_VAL = val;
 }
 
 void initGpio()
@@ -264,7 +300,8 @@ void initGpio()
     *DIR0 |= 0x1 << 2;//0x4;
 
     // disable swd on pin2
-    *PINENABLE0 |= 0x1 << 3; //0xFFFFFFFFUL;
+    *PINENABLE0 |= 0x1 << 3;
+    //*PINENABLE0 |= (0x1 << 3) | (0x1 << 2);
 
 }
 
@@ -327,26 +364,36 @@ uint32_t sineVal(uint32_t phase)
 
 int main(void) {
 
-        
+
+	// initialize cpu clock and basic peripheral clocks
+	setupPll();
 	*SYSAHBCLKCTRL |= ( (0x1 << SWM) | (0x1 << IOCON) );
 	
 	// "driver" loading
-	initGpio();
 	initTimer();
+
 	// set channel 0 as a led blinker
-	setDelay(CLOCK_FREQ/1000,0);
+	setDelay0(CLOCK_FREQ/1000);
+
 	// set channel 1 as sample clock
-	setDelay(CLOCK_FREQ/SAMPLING_FREQ,1);
+	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
+
+	amplitude = 0xFF;
 	
 	// init DAC 
 	initPwmDac();
+	amplitude = 0xFF;
+
 	//init Midi Interface
-	initMidiUart();
+	//initMidiUart();
+
+	//init GPIO
+	initGpio();
+
+
 	
     while(1) { // "OS"-Loop
-    	*SET0 = 0x1 << 2;
-        runTimer(1000);
-        *CLR0 = 0x1 << 2; 
+    	*NOT0 = 0x1 << 2;
         runTimer(1000);
     }
     return 0 ;
