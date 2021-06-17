@@ -45,7 +45,7 @@ void MRT_IRQHandler(void)
   if ( *MRT_STAT1 & MRT_STAT_INTFLAG )
   { //sampling interrupt, compute next phase and the next waveform value and put it in dac
    //increment is TONE_FREQ/SAMPLING_FREQ*RESOLUTION
-	//*NOT0 = 0x1 << 2;
+
     phase += p_i; //TONE_FREQ/SAMPLING_FREQ*0xFFFFFFFFUL;
 
     wave = phase >> (32 - DAC_RES); // output a aliased sawtooth
@@ -55,7 +55,7 @@ void MRT_IRQHandler(void)
     wave = wave >> 8;
     setPwmValue(wave);
     *MRT_STAT1 = MRT_STAT_INTFLAG;
-    //*NOT0 = 0x1 << 2;
+    //*NOT0 |= 0x1 << 3;
   }
   return;
 }
@@ -176,13 +176,18 @@ void setupPll()
 
 }
 
+void resetTimer()
+{
+
+*SYSAHBCLKCTRL |= (0x1<<10);
+*PRESETCTRL &= ~(0x1<<7);
+*PRESETCTRL |= (0x1<<7);
+
+}
+
 void initTimer()
 {
-          mrt_counter = 0;
-	  *SYSAHBCLKCTRL |= (0x1<<10);
-	  *PRESETCTRL &= ~(0x1<<7);
-	  *PRESETCTRL |= (0x1<<7);
-
+    mrt_counter = 0;
 	  *NVIC_ISER0 = (1 << ((uint32_t)(MRT_IRQN) & 0x1F));
 	  
 }
@@ -211,57 +216,97 @@ void runTimer(uint32_t delay)
 	}
 }
 
-void initPwmDac()
+void resetGPIO()
 {
+	// route clock to GPIO, reset GPIO
+	*SYSAHBCLKCTRL |= (0x1<<6);
+	*PRESETCTRL &= ~(0x1<<10);
+	*PRESETCTRL |= (0x1<<10);
+}
+
+void resetSCT()
+{
+	// reset and init SCT
 	*SYSAHBCLKCTRL |= (0x1<<8);
     *PRESETCTRL &= ~(0x1<<8);
 	*PRESETCTRL |= (0x1<<8);
 	
+}
+
+void initPwmDac()
+{
+
+	
+	// PIO0_3 as output
+    *DIR0 |= 0x1 << 3;
+
 	// disable default function on PIO0_3
 	*PINENABLE0 |= 0x1 << 2;
-	
+
+	// unify counters to get a single 32bit counter, set autolimit
+	*SCT_CONFIG = (0x1 << SCT_UNIFY) | (0x1 << 17);
+
 	// CTOUT_0_O to PIO0_3
-	*PINASSIGN6 |= 0x3<<24UL;
+	*PINASSIGN6 = 0x03FFFFFFUL;
+	//CTOUT1_0 to PIO0_3
+	//*PINASSIGN7 |= 0x03
 	
-	// SET OUTPUT 0 on Event 0 (PWM Compare match) and clear on event 1 (counter limit)
+	// set OUTPUT 0 on Event 0 (counter limit) and clear on event 1 (pwm match)
 	*SCT_OUT0_SET |= 0x1 << 0;
 	*SCT_OUT0_CLR |= 0x1 << 1;
 	
-	// unify counters to get a single 32bit counter 
-	*SCT_CONFIG |= 0x1 << SCT_UNIFY;
+
 	
 	// Set event 1 as limit event
-	*SCT_LIMIT |= 0x1 << 1;
+	//*SCT_LIMIT |= 0x1 << 1;
 	
 	// initialize counter with zero
-	*SCT_COUNT = 0;
+	//*SCT_COUNT = 0;
 	
-	// initialize to get zero analog voltage, i.e. generate a square wave on the output
-	SCT_MATCH0->REG_VAL = (uint8_t)(0xFF >> 1+8-DAC_RES);
 	
 	// initialize resolution 
-	SCT_MATCH1->REG_VAL = 0xFF  >> 8-DAC_RES;
+	SCT_MATCH0->REG_VAL = 0xFF >> 8-DAC_RES;
+	SCT_MATCHREL0->REG_VAL = 0xFF >> 8-DAC_RES;
+
+	// initialize to get zero analog voltage, i.e. generate a square wave on the output
+	SCT_MATCH1->REG_VAL = 0xFF  >> 1+8-DAC_RES;
+	SCT_MATCHREL1->REG_VAL = 0xFF  >> 1+8-DAC_RES;
 	
-	// Configuration for event 0: PWM Comparison match
+	// Configuration for event 0: counter reset
 	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, CNTOUT_0 is selected 0x1 << 5
-	*SCT_EV0_CTRL |= (0x1 << 12) | (0x1 << 21) | (0x1 << 5);
+	//*SCT_EV0_CTRL |= (0x1 << 12) | (0x1 << 21);// | (0x1 << 5);
+	//*SCT_EV0_CTRL &= ~(0x3F << 14); // set the states to zeros
+
+	// enable event 0 in state 0
+	*EV0_STATE = 0x1;
+
+	// Configuration for event 1: pwm match
+	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, use match register 1, CNTOUT_0 is selected 0x1 << 5
+	*SCT_EV1_CTRL |= (0x1 << 12) | (0x1 << 21) | (0x1 << 0);// | (0x1 << 5);
+	*SCT_EV1_CTRL &= ~(0x3F << 14);
 	
-	// Configuration for event 1: counter reset
-	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, use match register 1 
-	*SCT_EV1_CTRL |= (0x1 << 12) | (0x1 << 21) | (0x1 << 0);
-	
+	// enable event 1 in state 0
+	*EV1_STATE = 0x1;
+
 	// set halt to zero to start the counter
-	*SCT_CTRL &= ~(0x0 << 2);
+	*SCT_CTRL |= (0x1 << 3);
+	//*SCT_CTRL &= ~(0x1 << 2);
 	
-	phase = 0;
+	//phase = 0;
+
+
 }
 
-void initMidiUart()
+void resetUart0()
 {
 	// set clock to uart0 and reset it
 	*SYSAHBCLKCTRL |= (0x1<<14);
     *PRESETCTRL &= ~(0x1<<3);
 	*PRESETCTRL |= (0x1<<3);
+}
+
+void initMidiUart()
+{
 
 	// configure UART: Enable, 8 data bits, all other settings comply with the reset values
 	*UARTCFG0 |= (0x1 << 0) | (0x1 << 2);
@@ -290,18 +335,13 @@ void setPwmValue(uint32_t val)
 
 void initGpio()
 {
-	// route clock to GPIO, reset GPIO
-	*SYSAHBCLKCTRL |= (0x1<<6);
-	*PRESETCTRL &= ~(0x1<<10);
-	*PRESETCTRL |= (0x1<<10);
 
 
 	// PIO0_2 as output
-    *DIR0 |= 0x1 << 2;//0x4;
+    *DIR0 |= 0x1 << 2;
 
-    // disable swd on pin2
-    *PINENABLE0 |= 0x1 << 3;
-    //*PINENABLE0 |= (0x1 << 3) | (0x1 << 2);
+    // disable swdio in pio0_2
+    *PINENABLE0 |= (0x1 << 3);
 
 }
 
@@ -369,31 +409,44 @@ int main(void) {
 	setupPll();
 	*SYSAHBCLKCTRL |= ( (0x1 << SWM) | (0x1 << IOCON) );
 	
+
+	// enable  and reset used hardware components
+	resetUart0();
+	resetSCT();
+	resetGPIO();
+	resetTimer();
+
+
+	// init DAC
+	//initPwmDac();
+
 	// "driver" loading
 	initTimer();
 
+	
+    initPwmDac();
+	amplitude = 0xFF;
+
+	//init Midi Interface
+	//initMidiUart();
+
+
+	//init GPIO
+	initGpio();
+
+	
 	// set channel 0 as a led blinker
 	setDelay0(CLOCK_FREQ/1000);
 
 	// set channel 1 as sample clock
 	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
 
-	amplitude = 0xFF;
-	
-	// init DAC 
-	initPwmDac();
-	amplitude = 0xFF;
-
-	//init Midi Interface
-	//initMidiUart();
-
-	//init GPIO
-	initGpio();
-
-
-	
     while(1) { // "OS"-Loop
-    	*NOT0 = 0x1 << 2;
+    	*NOT0 |= 0x1 << 2;
+        *SCT_OUTPUT &= ~(0x1 << 0);
+        runTimer(1000);
+    	*NOT0 |= 0x1 << 2;
+        *SCT_OUTPUT |= 0x1 << 0;
         runTimer(1000);
     }
     return 0 ;
