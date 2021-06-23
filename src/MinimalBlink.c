@@ -243,58 +243,47 @@ void initPwmDac()
 	// disable default function on PIO0_3
 	*PINENABLE0 |= 0x1 << 2;
 
-	// unify counters to get a single 32bit counter, set autolimit
-	*SCT_CONFIG = (0x1 << SCT_UNIFY) | (0x1 << 17);
+	// unify counters to get a single 32bit counter
+	*SCT_CONFIG |= (0x1 << SCT_UNIFY);
 
 	// CTOUT_0_O to PIO0_3
 	*PINASSIGN6 = 0x03FFFFFFUL;
-	//CTOUT1_0 to PIO0_3
-	//*PINASSIGN7 |= 0x03
-	
-	// set OUTPUT 0 on Event 0 (counter limit) and clear on event 1 (pwm match)
-	*SCT_OUT0_SET |= 0x1 << 0;
-	*SCT_OUT0_CLR |= 0x1 << 1;
-	
-
-	
-	// Set event 1 as limit event
-	//*SCT_LIMIT |= 0x1 << 1;
-	
-	// initialize counter with zero
-	//*SCT_COUNT = 0;
 	
 	
 	// initialize resolution 
-	SCT_MATCH0->REG_VAL = 0xFF >> 8-DAC_RES;
-	SCT_MATCHREL0->REG_VAL = 0xFF >> 8-DAC_RES;
+	SCT_MATCH0->REG_VAL = 0xFFUL >> 8-DAC_RES+1;
+	SCT_MATCHREL0->REG_VAL = 0xFFUL >> 8-DAC_RES+1;
 
 	// initialize to get zero analog voltage, i.e. generate a square wave on the output
-	SCT_MATCH1->REG_VAL = 0xFF  >> 1+8-DAC_RES;
-	SCT_MATCHREL1->REG_VAL = 0xFF  >> 1+8-DAC_RES;
+	SCT_MATCH1->REG_VAL = 0xFFUL  >> 8-DAC_RES;
+	SCT_MATCHREL1->REG_VAL = 0xFFUL  >> 8-DAC_RES;
 	
-	// Configuration for event 0: counter reset
-	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, CNTOUT_0 is selected 0x1 << 5
-	//*SCT_EV0_CTRL |= (0x1 << 12) | (0x1 << 21);// | (0x1 << 5);
-	//*SCT_EV0_CTRL &= ~(0x3F << 14); // set the states to zeros
 
 	// enable event 0 in state 0
-	*EV0_STATE = 0x1;
+	*SCT_EV0_STATE = 0x1;
+	// Configuration for event 0: pwm match
+	// Combmode match only 0x1 << 12, match register 0
+	*SCT_EV0_CTRL = (0x1 << 12) | (0x0 << 0);
 
-	// Configuration for event 1: pwm match
-	// Combmode match only 0x1 << 12, direction counting up 0x1 << 21, use match register 1, CNTOUT_0 is selected 0x1 << 5
-	*SCT_EV1_CTRL |= (0x1 << 12) | (0x1 << 21) | (0x1 << 0);// | (0x1 << 5);
-	*SCT_EV1_CTRL &= ~(0x3F << 14);
-	
+	// Configuration for event 1: counter reset
+	// Combmode match only 0x1 << 12, use match register 1
 	// enable event 1 in state 0
-	*EV1_STATE = 0x1;
+	*SCT_EV1_STATE = 0x1;
+	*SCT_EV1_CTRL = (0x1 << 12) | (0x1 << 0);
+
+	// set zero in the state register
+	*SCT_STATE = 0x0;
+
+	// set OUTPUT 0 on Event 0 (counter limit) and clear on event 1 (pwm match)
+	*SCT_OUT0_SET = 0x1 << 1;
+	*SCT_OUT0_CLR = 0x1 << 0;
+
+	// Set event 1 as limit event
+	*SCT_LIMIT = 0x1 << 1;
 
 	// set halt to zero to start the counter
-	*SCT_CTRL |= (0x1 << 3);
-	//*SCT_CTRL &= ~(0x1 << 2);
+	*SCT_CTRL &= ~(0x1 << 2);
 	
-	//phase = 0;
-
-
 }
 
 void resetUart0()
@@ -443,10 +432,10 @@ int main(void) {
 
     while(1) { // "OS"-Loop
     	*NOT0 |= 0x1 << 2;
-        *SCT_OUTPUT &= ~(0x1 << 0);
+        //*SCT_OUTPUT &= ~(0x1 << 0);
         runTimer(1000);
     	*NOT0 |= 0x1 << 2;
-        *SCT_OUTPUT |= 0x1 << 0;
+        //*SCT_OUTPUT |= 0x1 << 0;
         runTimer(1000);
     }
     return 0 ;

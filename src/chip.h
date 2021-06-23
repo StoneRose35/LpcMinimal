@@ -48,19 +48,22 @@
 #define SCT_COUNT  ((volatile uint32_t*)0x50004040UL) /*SCT counter value*/
 
 #define SCT_MATCH0_ALT ((BARE_REGISTER_T*)0x50004100UL)
-#define SCT_MATCH0 ((SCT_MATCH_T*)0x50004100UL) /*SCT match 0  register, hold the PWM value*/
-#define SCT_MATCHREL0 ((SCT_MATCH_T*)0x50004200UL) /*SCT match 0 reload register, used to update the pwm value*/
-#define SCT_MATCH1 ((SCT_MATCH_T*)0x50004104UL) /*SCT match 0  register, defines the maximum counter resolution / PWM frequency*/
-#define SCT_MATCHREL1 ((SCT_MATCH_T*)0x50004204UL)
-#define SCT_EV0_CTRL ((volatile uint32_t*)0x50004304UL) /*SCT Event 0 control*/
-#define SCT_EV1_CTRL ((volatile uint32_t*)0x50004308UL) /*SCT Event 1 control*/
-#define SCT_CTRL ((volatile uint32_t*)0x50004004UL) /*SCT Control Register*/
-#define SCT_LIMIT ((volatile uint32_t*)0x50004008UL) /* SCT Limit Register*/
-#define SCT_OUT0_SET ((volatile uint32_t*)0x50004500UL) /*SCT Output 0 Set on Event*/
-#define SCT_OUT0_CLR ((volatile uint32_t*)0x50004504UL) /*SCT Output 0 Clear on Events*/
-#define SCT_OUTPUT  ((volatile uint32_t*)0x50004050UL) /*SCT Output 0 register*/
-#define EV0_STATE ((volatile uint32_t*)0x50004300UL) /*Event 0 State register*/
-#define EV1_STATE ((volatile uint32_t*)0x50004308UL) /*Event 1 State register*/
+#define SCT_MATCH0     ((SCT_MATCH_T*)0x50004100UL) /*SCT match 0  register, hold the PWM value*/
+#define SCT_MATCHREL0  ((SCT_MATCH_T*)0x50004200UL) /*SCT match 0 reload register, used to update the pwm value*/
+#define SCT_MATCH1     ((SCT_MATCH_T*)0x50004104UL) /*SCT match 0  register, defines the maximum counter resolution / PWM frequency*/
+#define SCT_MATCHREL1  ((SCT_MATCH_T*)0x50004204UL)
+#define SCT_EV0_STATE      ((volatile uint32_t*)0x50004300UL) /*Event 0 State register*/
+#define SCT_EV0_CTRL   ((volatile uint32_t*)0x50004304UL) /*SCT Event 0 control*/
+#define SCT_EV1_STATE      ((volatile uint32_t*)0x50004308UL) /*Event 1 State register*/
+#define SCT_EV1_CTRL   ((volatile uint32_t*)0x5000430CUL) /*SCT Event 1 control*/
+#define SCT_CTRL       ((volatile uint32_t*)0x50004004UL) /*SCT Control Register*/
+#define SCT_LIMIT      ((volatile uint32_t*)0x50004008UL) /* SCT Limit Register*/
+#define SCT_OUT0_SET   ((volatile uint32_t*)0x50004500UL) /*SCT Output 0 Set on Event*/
+#define SCT_OUT0_CLR   ((volatile uint32_t*)0x50004504UL) /*SCT Output 0 Clear on Events*/
+#define SCT_OUTPUT     ((volatile uint32_t*)0x50004050UL) /*SCT Output 0 register*/
+
+
+#define SCT_STATE ((volatile uint32_t*)0x50004044UL) /*State Register*/
 
 
 #define INTENSET ((volatile uint32_t*)0x4006400CUL) /*USART Interrupt set Register*/
