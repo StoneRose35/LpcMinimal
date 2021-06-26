@@ -16,6 +16,9 @@
 void setPwmValue(uint32_t);
 void handleNoteOff(void);
 uint32_t sineVal(uint32_t);
+uint32_t div32(uint32_t,uint32_t);
+uint8_t div8(uint8_t,uint8_t);
+
 
 
 volatile uint32_t mrt_counter;
@@ -286,8 +289,53 @@ void initPwmDac()
 	
 }
 
+
+int printf(const char * data)
+{
+	int cnt = 0;
+	while (data[cnt] != 0)
+	{
+		while ((*USART_STAT0 & (0x1 << 2)) == 0) {}
+		*TXDAT0 = data[cnt];
+		cnt++;
+	}
+	return cnt;
+}
+
+void toChar(uint8_t v,char* res)
+{
+
+	uint8_t v_bfr;
+	uint8_t rem;
+	res[3]=0;
+	uint8_t idx;
+	v_bfr = v;
+	if (v==0)
+	{
+		res[0]=0x30;
+	}
+	else
+	{
+		while (v_bfr <= v && v_bfr > 0)
+		{
+			rem = 1;
+			idx = 0;
+			while(v_bfr > 9)
+			{
+				v_bfr = div8(v_bfr,10);
+				idx++;
+				rem = rem*10;
+			}
+			res[idx] = v_bfr + 0x30;
+			v_bfr = v - v_bfr*rem;
+		}
+	}
+}
+
 void resetUart0()
 {
+    // set clock divider to 16* the midi baud rate before the fractional divider
+    *UARTCLKDIV = 1;
 	// set clock to uart0 and reset it
 	*SYSAHBCLKCTRL |= (0x1<<14);
     *PRESETCTRL &= ~(0x1<<3);
@@ -297,24 +345,33 @@ void resetUart0()
 void initMidiUart()
 {
 
-	// configure UART: Enable, 8 data bits, all other settings comply with the reset values
-	*UARTCFG0 |= (0x1 << 0) | (0x1 << 2);
+	// PIO0_4 as output
+    *DIR0 |= 0x1 << 4;
+
+    // route to PIO0_0 (RX)
+    // route to PIO0_4 (TX)
+    *PINASSIGN0 = 0x4;
+
+    // 8 data bits
+    *UARTCFG0 |= (0x1 << 2);
+
+
+    // set the baud rate generator to 125
+    *BRG0 = 0xFF;//0x7d-0x1;
+
+    // set the fractional divider part to 144/256
+    *UARTFRGDIV = 0xff;
+    *UARTFRGMULT = 0x90;
+
+    //clear the status
+    *USART_STAT0 |= (0x1 << 5) | (0x1 << 11);
 
 	// enable Interrupt on receive
     *INTENSET |= (0x1<<0);
 
-    // route to PIO0_4 (RX)
-    *PINASSIGN0 |= 0x4 << 8;
+	// enable
+	*UARTCFG0 |= (0x1 << 0);
 
-    // set clock divider to 16* the midi baud rate before the fractional divider
-    *UARTCLKDIV = UART_CLOCK_DIV << 0;
-
-    // set the fractional divider part to 0
-    *UARTFRGMULT = 0x0;
-    *UARTFRGDIV = 0xff;
-
-    // set the baud rate generator to 1
-    *BRG0 = 0x0;
 }
 
 void setPwmValue(uint32_t val)
@@ -334,10 +391,23 @@ void initGpio()
 
 }
 
-uint32_t div(uint32_t dividend,uint32_t divisor)
+uint32_t div32(uint32_t dividend,uint32_t divisor)
 {
 	uint32_t bfr;
 	uint32_t res=0;
+	bfr=dividend;
+	while(bfr > divisor)
+	{
+		res++;
+		bfr -=divisor;
+	}
+	return res;
+}
+
+uint8_t div8(uint8_t dividend,uint8_t divisor)
+{
+	uint8_t bfr;
+	uint8_t res=0;
 	bfr=dividend;
 	while(bfr > divisor)
 	{
@@ -354,7 +424,7 @@ uint32_t sineTaylor(uint32_t p)
 	bfr=p*p;
 	bfr = bfr >> 16 & 0xFFFF;
 	bfr = bfr*p;
-	bfr = div(bfr,3170);
+	bfr = div32(bfr,3170);
 	//bfr /= 3170;
 	res = (p*3 - bfr);
 	return(res);
@@ -406,9 +476,6 @@ int main(void) {
 	resetTimer();
 
 
-	// init DAC
-	//initPwmDac();
-
 	// "driver" loading
 	initTimer();
 
@@ -417,7 +484,7 @@ int main(void) {
 	amplitude = 0xFF;
 
 	//init Midi Interface
-	//initMidiUart();
+	initMidiUart();
 
 
 	//init GPIO
@@ -430,13 +497,18 @@ int main(void) {
 	// set channel 1 as sample clock
 	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
 
+	printf("LPC Synth ready\r\n\0");
+    uint8_t pcnt;
+    pcnt=0;
+    char nr[4];
     while(1) { // "OS"-Loop
     	*NOT0 |= 0x1 << 2;
-        //*SCT_OUTPUT &= ~(0x1 << 0);
         runTimer(1000);
-    	*NOT0 |= 0x1 << 2;
-        //*SCT_OUTPUT |= 0x1 << 0;
-        runTimer(1000);
+        printf("running for \0");
+        toChar(pcnt,nr);
+        printf(nr);
+        printf("s\r\n\0");
+        pcnt++;
     }
     return 0 ;
 }
