@@ -4,7 +4,7 @@ PROJECT_NAME="MinimalBlink"
 ERRORS=0
 for fname in ./src/*.c; do
     echo "building $fname"
-    arm-none-eabi-gcc -Os -c "$fname" -ffunction-sections -fdata-sections -mcpu=cortex-m0 -mthumb -o ./out/$(basename "$fname" .c).o
+    arm-none-eabi-gcc -Os -c "$fname" -ffunction-sections -fdata-sections -fno-builtin -mcpu=cortex-m0 -mthumb -o ./out/$(basename "$fname" .c).o
     #arm-none-eabi-gcc -Os -c "$fname" -mcpu=cortex-m0 -mthumb -o ./out/$(basename "$fname" .c).o
     let ERRORS+=$?
 done

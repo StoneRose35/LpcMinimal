@@ -11,13 +11,12 @@
 #include "types.h"
 #include "chip.h"
 #include "synth.h"
+#include "midi.h"
+#include "minilib.h"
 
 
 void setPwmValue(uint32_t);
-void handleNoteOff(void);
 uint32_t sineVal(uint32_t);
-uint32_t div32(uint32_t,uint32_t);
-uint8_t div8(uint8_t,uint8_t);
 
 
 
@@ -25,14 +24,10 @@ volatile uint32_t mrt_counter;
 volatile uint32_t phase;
 volatile uint16_t wave;
 volatile uint8_t amplitude;
+volatile uint8_t playedNote;
 
-/*midi controller variables*/
-volatile uint8_t midiNotes = 0;
-volatile uint8_t midiCntr = 0;
-volatile uint8_t playedNote = 0;
-volatile uint8_t lastStatus = 0x80;
-volatile uint8_t noteBfr;
-volatile uint8_t notes[16];
+
+
 
 const uint32_t phaseIncrements[120] = { 0x00217057, 0x00236d5d, 0x002588a8, 0x0027c404, 0x002a215a, 0x002ca2af, 0x002f4a26, 0x00321a04, 0x003514b1, 0x00383cb8, 0x003b94ca, 0x003f1fc5, 0x0042e0ae, 0x0046daba, 0x004b1150, 0x004f8809, 0x005442b4, 0x0059455e, 0x005e944c, 0x00643409, 0x006a2963, 0x00707970, 0x00772995, 0x007e3f8a, 0x0085c15c, 0x008db575, 0x009622a1, 0x009f1012, 0x00a88569, 0x00b28abc, 0x00bd2899, 0x00c86813, 0x00d452c6, 0x00e0f2e0, 0x00ee532b, 0x00fc7f15, 0x010b82b9, 0x011b6aeb, 0x012c4542, 0x013e2024, 0x01510ad3, 0x01651578, 0x017a5132, 0x0190d026, 0x01a8a58c, 0x01c1e5c0, 0x01dca657, 0x01f8fe2a, 0x02170572, 0x0236d5d6, 0x02588a84, 0x027c4048, 0x02a215a6, 0x02ca2af0, 0x02f4a264, 0x0321a04c, 0x03514b18, 0x0383cb81, 0x03b94cae, 0x03f1fc55, 0x042e0ae5, 0x046dabac, 0x04b11508, 0x04f88091, 0x05442b4c, 0x059455e0, 0x05e944c9, 0x06434099, 0x06a29630, 0x07079703, 0x0772995d, 0x07e3f8ab, 0x085c15ca, 0x08db5758, 0x09622a11, 0x09f10123, 0x0a885699, 0x0b28abc0, 0x0bd28992, 0x0c868132, 0x0d452c61, 0x0e0f2e07, 0x0ee532bb, 0x0fc7f157, 0x10b82b94, 0x11b6aeb1, 0x12c45422, 0x13e20246, 0x1510ad33, 0x16515780, 0x17a51325, 0x190d0264, 0x1a8a58c3, 0x1c1e5c0f, 0x1dca6576, 0x1f8fe2ae, 0x21705728, 0x236d5d63, 0x2588a844, 0x27c4048d, 0x2a215a67, 0x2ca2af01, 0x2f4a264a, 0x321a04c9, 0x3514b186, 0x383cb81e, 0x3b94caed, 0x3f1fc55c, 0x42e0ae51, 0x46dabac6, 0x4b115088, 0x4f88091b, 0x5442b4cf, 0x59455e02, 0x5e944c95, 0x64340992, 0x6a29630c, 0x7079703d, 0x772995db, 0x7e3f8ab8};
 volatile uint32_t p_i = phaseIncrements[60];
@@ -70,88 +65,13 @@ void UART0_IRQHandler(void)
 	{
 		/*read midi message*/
 		byteRead = *RXDAT0 & 0xFF;
-		if (byteRead & 0x80) /*check for status byte*/
-		{
-			midiCntr=0;
-			lastStatus = byteRead & 0xF0;
-		}
-		else
-		{
-			if (midiCntr==0)
-			{
-				noteBfr = byteRead;
-				midiCntr++;
-			}
-			else if (midiCntr==1)
-			{
-				switch (lastStatus)
-				{
-					case MIDI_NOTEOFF:
-
-						if (midiNotes > 0)
-						{
-							handleNoteOff();
-						}
-
-						break;
-					case MIDI_NOTEON:
-						if (byteRead == 0)
-						{
-							if (midiNotes > 0)
-							{
-								handleNoteOff();
-							}
-						}
-						else
-						{
-							amplitude = 255;
-							*(notes+midiNotes) = noteBfr;
-							midiNotes++;
-							/*set note, currently implementing highest first*/
-							if (noteBfr > playedNote)
-							{
-								playedNote = noteBfr;
-								p_i=phaseIncrements[playedNote];
-							}
-
-						}
-						break;
-					default:
-						break;
-				}
-				midiCntr=0;
-			}
-		}
-
+		handleMidiNote(byteRead,&playedNote,&amplitude);
+		p_i = phaseIncrements[playedNote];
 	}
 }
 
 
-void handleNoteOff(void)
-{
-	for (char c=0;c<midiNotes;c++)
-	{
-		if (*(notes+c)==noteBfr)
-		{
-			for(char cc=c;c<15;cc++)
-			{
-				*(notes+cc) = *(notes + cc + 1);
-			}
 
-			*(notes+15) = 0;
-		}
-	}
-	midiNotes--;
-	if (midiNotes > 0)
-	{
-		playedNote = *(notes + midiNotes-1);
-	}
-	else
-	{
-		playedNote=0;
-		amplitude=0;
-	}
-}
 
 void setupPll()
 {
@@ -290,48 +210,6 @@ void initPwmDac()
 }
 
 
-int printf(const char * data)
-{
-	int cnt = 0;
-	while (data[cnt] != 0)
-	{
-		while ((*USART_STAT0 & (0x1 << 2)) == 0) {}
-		*TXDAT0 = data[cnt];
-		cnt++;
-	}
-	return cnt;
-}
-
-void toChar(uint8_t v,char* res)
-{
-
-	uint8_t v_bfr;
-	uint8_t rem;
-	res[3]=0;
-	uint8_t idx;
-	v_bfr = v;
-	if (v==0)
-	{
-		res[0]=0x30;
-	}
-	else
-	{
-		while (v_bfr <= v && v_bfr > 0)
-		{
-			rem = 1;
-			idx = 0;
-			while(v_bfr > 9)
-			{
-				v_bfr = div8(v_bfr,10);
-				idx++;
-				rem = rem*10;
-			}
-			res[idx] = v_bfr + 0x30;
-			v_bfr = v - v_bfr*rem;
-		}
-	}
-}
-
 void resetUart0()
 {
     // set clock divider to 16* the midi baud rate before the fractional divider
@@ -391,32 +269,6 @@ void initGpio()
 
 }
 
-uint32_t div32(uint32_t dividend,uint32_t divisor)
-{
-	uint32_t bfr;
-	uint32_t res=0;
-	bfr=dividend;
-	while(bfr > divisor)
-	{
-		res++;
-		bfr -=divisor;
-	}
-	return res;
-}
-
-uint8_t div8(uint8_t dividend,uint8_t divisor)
-{
-	uint8_t bfr;
-	uint8_t res=0;
-	bfr=dividend;
-	while(bfr > divisor)
-	{
-		res++;
-		bfr -=divisor;
-	}
-	return res;
-}
-
 uint32_t sineTaylor(uint32_t p)
 {
 	uint32_t bfr;
@@ -424,7 +276,7 @@ uint32_t sineTaylor(uint32_t p)
 	bfr=p*p;
 	bfr = bfr >> 16 & 0xFFFF;
 	bfr = bfr*p;
-	bfr = div32(bfr,3170);
+	bfr = div32(bfr,3170,0);
 	//bfr /= 3170;
 	res = (p*3 - bfr);
 	return(res);
@@ -497,6 +349,7 @@ int main(void) {
 	// set channel 1 as sample clock
 	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
 
+	div8(10,10,0);
 	printf("LPC Synth ready\r\n\0");
     uint8_t pcnt;
     pcnt=0;

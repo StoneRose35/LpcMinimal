@@ -5,5 +5,4 @@
 #define TONE_FREQ 333
 
 
-#define MIDI_NOTEOFF 0x80
-#define MIDI_NOTEON 0x90
+
