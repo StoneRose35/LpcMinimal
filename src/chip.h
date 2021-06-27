@@ -14,6 +14,7 @@
 #define IOCON (18)
 #define CLOCK_FREQ (30000000)
 #define MRT_IRQN 10
+#define UART0_IRQN 3
 
 #define BAUD_RATE 9600/*31250 for MIDI*/
 #define UART_CLOCK_DIV (uint32_t)(CLOCK_FREQ/(BAUD_RATE*16))
@@ -43,6 +44,7 @@
 #define MRT_STAT1 ((volatile uint32_t*)0x4000401CUL) /*Status register for the Multi Rate Timer Channel 1 */
 
 #define NVIC_ISER0 ((volatile uint32_t*)0xE000E100UL) /*Nested Vector Interrupt Controller register for enabling interrupts*/
+#define NVIC_ICER0 ((volatile uint32_t*)0xE000E180UL) /*Nested Vector Interrupt Controller register for disabling interrupts*/
 
 #define PINASSIGN6  ((volatile uint32_t*)0x4000C018UL) /*switch matrix used to setup pwm output pin*/
 #define PINASSIGN7 ((volatile uint32_t*)0x4000C01CUL) /*switch matrix used to setup pwm output pin*/

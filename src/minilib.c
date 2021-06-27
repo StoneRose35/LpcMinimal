@@ -7,11 +7,16 @@ int printf(const char * data)
 	int cnt = 0;
 	while (data[cnt] != 0)
 	{
-		while ((*USART_STAT0 & (0x1 << 2)) == 0) {}
-		*TXDAT0 = data[cnt];
+		sendChar(data[cnt]);
 		cnt++;
 	}
 	return cnt;
+}
+
+void sendChar(uint8_t data)
+{
+	while ((*USART_STAT0 & (0x1 << 2)) == 0) {}
+	*TXDAT0 = data;
 }
 
 void toChar(uint8_t v,char* res)

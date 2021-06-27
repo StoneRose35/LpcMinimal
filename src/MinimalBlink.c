@@ -60,14 +60,19 @@ void MRT_IRQHandler(void)
 
 void UART0_IRQHandler(void)
 {
-	char byteRead;
+	uint8_t byteRead;
 	if (*USART_STAT0 & RXRDY)
 	{
 		/*read midi message*/
 		byteRead = *RXDAT0 & 0xFF;
+		/*
 		handleMidiNote(byteRead,&playedNote,&amplitude);
 		p_i = phaseIncrements[playedNote];
+		*/
+		//simple echo
+		sendChar(byteRead);
 	}
+	return;
 }
 
 
@@ -111,7 +116,7 @@ void resetTimer()
 void initTimer()
 {
     mrt_counter = 0;
-	  *NVIC_ISER0 = (1 << ((uint32_t)(MRT_IRQN) & 0x1F));
+	*NVIC_ISER0 = (1 << ((uint32_t)(MRT_IRQN) & 0x1F));
 	  
 }
 
@@ -212,8 +217,8 @@ void initPwmDac()
 
 void resetUart0()
 {
-    // set clock divider to 16* the midi baud rate before the fractional divider
-    *UARTCLKDIV = 1;
+    // System Clock is apparently 60 MHz due to the PLL used, divide by two to get 30MHz base
+	*UARTCLKDIV = 0x2;
 	// set clock to uart0 and reset it
 	*SYSAHBCLKCTRL |= (0x1<<14);
     *PRESETCTRL &= ~(0x1<<3);
@@ -226,16 +231,20 @@ void initMidiUart()
 	// PIO0_4 as output
     *DIR0 |= 0x1 << 4;
 
+
+    // disable interrupts while configuring
+    *NVIC_ICER0 = (1 << ((uint32_t)(UART0_IRQN) & 0x1F));
+
     // route to PIO0_0 (RX)
     // route to PIO0_4 (TX)
-    *PINASSIGN0 = 0x4;
+    *PINASSIGN0 = 0xFFFF0004;
 
     // 8 data bits
     *UARTCFG0 |= (0x1 << 2);
 
 
     // set the baud rate generator to 125
-    *BRG0 = 0xFF;//0x7d-0x1;
+    *BRG0 = 0x7d-0x1;
 
     // set the fractional divider part to 144/256
     *UARTFRGDIV = 0xff;
@@ -245,7 +254,10 @@ void initMidiUart()
     *USART_STAT0 |= (0x1 << 5) | (0x1 << 11);
 
 	// enable Interrupt on receive
-    *INTENSET |= (0x1<<0);
+    *INTENSET = (0x1<<0);
+
+    // enable interrupts
+    *NVIC_ISER0 = (1 << ((uint32_t)(UART0_IRQN) & 0x1F));
 
 	// enable
 	*UARTCFG0 |= (0x1 << 0);
@@ -349,7 +361,6 @@ int main(void) {
 	// set channel 1 as sample clock
 	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
 
-	div8(10,10,0);
 	printf("LPC Synth ready\r\n\0");
     uint8_t pcnt;
     pcnt=0;
@@ -357,10 +368,10 @@ int main(void) {
     while(1) { // "OS"-Loop
     	*NOT0 |= 0x1 << 2;
         runTimer(1000);
-        printf("running for \0");
-        toChar(pcnt,nr);
-        printf(nr);
-        printf("s\r\n\0");
+        //printf("running for \0");
+        //toChar(pcnt,nr);
+        //printf(nr);
+        //printf("s\r\n\0");
         pcnt++;
     }
     return 0 ;
