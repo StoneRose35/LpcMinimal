@@ -80,3 +80,49 @@ uint8_t div8(uint8_t dividend,uint8_t divisor,uint8_t* rem)
 	}
 	return res;
 }
+
+
+uint32_t sineTaylor(uint32_t p)
+{
+	uint32_t bfr;
+	uint32_t res;
+	bfr=p*p;
+	bfr = bfr >> 16 & 0xFFFF;
+	bfr = bfr*p;
+	bfr = div32(bfr,3170,0);
+	//bfr /= 3170;
+	res = (p*3 - bfr);
+	return(res);
+}
+
+/*returns an approximated sine value with 16 bit resolution for both the phase value and and returned sine value
+ * input and output are actually unsigned 16bit integer stored in a 32bit variable to save a few processing steps for typecasting
+ * */
+uint32_t sineVal(uint32_t phase)
+{
+	uint32_t res;
+	if ((phase & 0x0000c000)  == 0)
+	{
+		res = sineTaylor(phase) + 0x7FFF;
+	}
+	else if ((phase & 0x0000c000) == 1 << 14)
+	{
+		uint32_t phase_rel = 0x7FFF - phase;
+		res = 0x7FFF + sineTaylor(phase_rel);
+	}
+	else if ((phase & 0x0000c000) == 2 << 14)
+	{
+		uint32_t phase_rel = phase - 0x7FFF;
+		res = 0x7FFF - sineTaylor(phase_rel);
+	}
+	else
+	{
+		uint32_t phase_rel = 0xFFFF - phase;
+		res = 0x7FFF - sineTaylor(phase_rel);
+	}
+
+	return res;
+	//taylor series: x - x^3/6
+}
+
+

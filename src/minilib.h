@@ -8,4 +8,7 @@ int printf(const char * data);
 void sendChar(uint8_t data);
 void toChar(uint8_t v,char* res);
 
+uint32_t sineVal(uint32_t phase);
+uint32_t sineTaylor(uint32_t p);
+
 #endif
