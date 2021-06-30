@@ -17,6 +17,7 @@
 #include "mrt.h"
 #include "gpio.h"
 #include "pwmdac.h"
+#include "adagio_for_tron.h"
 
 
 extern uint32_t mrt_counter;
@@ -29,6 +30,7 @@ volatile uint8_t playedNote;
 
 
 const uint32_t phaseIncrements[120] = { 0x00217057, 0x00236d5d, 0x002588a8, 0x0027c404, 0x002a215a, 0x002ca2af, 0x002f4a26, 0x00321a04, 0x003514b1, 0x00383cb8, 0x003b94ca, 0x003f1fc5, 0x0042e0ae, 0x0046daba, 0x004b1150, 0x004f8809, 0x005442b4, 0x0059455e, 0x005e944c, 0x00643409, 0x006a2963, 0x00707970, 0x00772995, 0x007e3f8a, 0x0085c15c, 0x008db575, 0x009622a1, 0x009f1012, 0x00a88569, 0x00b28abc, 0x00bd2899, 0x00c86813, 0x00d452c6, 0x00e0f2e0, 0x00ee532b, 0x00fc7f15, 0x010b82b9, 0x011b6aeb, 0x012c4542, 0x013e2024, 0x01510ad3, 0x01651578, 0x017a5132, 0x0190d026, 0x01a8a58c, 0x01c1e5c0, 0x01dca657, 0x01f8fe2a, 0x02170572, 0x0236d5d6, 0x02588a84, 0x027c4048, 0x02a215a6, 0x02ca2af0, 0x02f4a264, 0x0321a04c, 0x03514b18, 0x0383cb81, 0x03b94cae, 0x03f1fc55, 0x042e0ae5, 0x046dabac, 0x04b11508, 0x04f88091, 0x05442b4c, 0x059455e0, 0x05e944c9, 0x06434099, 0x06a29630, 0x07079703, 0x0772995d, 0x07e3f8ab, 0x085c15ca, 0x08db5758, 0x09622a11, 0x09f10123, 0x0a885699, 0x0b28abc0, 0x0bd28992, 0x0c868132, 0x0d452c61, 0x0e0f2e07, 0x0ee532bb, 0x0fc7f157, 0x10b82b94, 0x11b6aeb1, 0x12c45422, 0x13e20246, 0x1510ad33, 0x16515780, 0x17a51325, 0x190d0264, 0x1a8a58c3, 0x1c1e5c0f, 0x1dca6576, 0x1f8fe2ae, 0x21705728, 0x236d5d63, 0x2588a844, 0x27c4048d, 0x2a215a67, 0x2ca2af01, 0x2f4a264a, 0x321a04c9, 0x3514b186, 0x383cb81e, 0x3b94caed, 0x3f1fc55c, 0x42e0ae51, 0x46dabac6, 0x4b115088, 0x4f88091b, 0x5442b4cf, 0x59455e02, 0x5e944c95, 0x64340992, 0x6a29630c, 0x7079703d, 0x772995db, 0x7e3f8ab8};
+const uint32_t* p_phaseIncrements = phaseIncrements;
 volatile uint32_t p_i = phaseIncrements[60];
 
 void MRT_IRQHandler(void)
@@ -144,13 +146,39 @@ int main(void) {
     uint8_t pcnt;
     pcnt=0;
     char nr[4];
+
+    /* test axHex */
+    uint32_t td = 0;
+    char dbfr[11];
+
+    /*
+    while (td < 0xFFFFFFFF)
+    {
+        for(uint8_t c=0;c<11;c++)
+        {
+        	*(dbfr + c) = 0;
+        }
+        printf("Hex Test ");
+        asHex(td,dbfr);
+        printf(dbfr);
+        printf("\r\n");
+        td++;
+    }
+    */
+    int8_t a = 56;
+    int8_t b = 12;
+    uint8_t c = a - b;
+    for(uint8_t c=0;c<11;c++)
+    {
+    	*(dbfr + c) = 0;
+    }
+    toChar(c,dbfr);
+    printf(dbfr);
     while(1) { // "OS"-Loop
-    	*NOT0 |= 0x1 << 2;
-        runTimer(1000);
-        //printf("running for \0");
-        //toChar(pcnt,nr);
-        //printf(nr);
-        //printf("s\r\n\0");
+    	//*NOT0 |= 0x1 << 2;
+        //runTimer(1000);
+
+    	play_adagio_for_tron();
         pcnt++;
     }
     return 0 ;

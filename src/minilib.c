@@ -19,6 +19,36 @@ void sendChar(uint8_t data)
 	*TXDAT0 = data;
 }
 
+void asHex(uint32_t v,char* res)
+{
+	uint32_t bfr;
+	uint32_t cnt = 0;
+	res[cnt] = 0x30;
+	cnt++;
+	res[cnt] = 0x78;
+	cnt++;
+	while (v > 0)
+	{
+		bfr = v & 0xF0000000;
+		bfr = bfr >> 32-4;
+		bfr = bfr & 0xF;
+		if (bfr > 9)
+		{
+			res[cnt] = bfr + 0x41 - 0xA;
+		}
+		else
+		{
+			res[cnt] = bfr + 0x30;
+		}
+		cnt++;
+		v = v << 4;
+	}
+	if (cnt==2)
+	{
+		res[cnt]=0x30;
+	}
+}
+
 void toChar(uint8_t v,char* res)
 {
 
