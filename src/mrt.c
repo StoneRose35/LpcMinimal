@@ -35,6 +35,13 @@ void setDelay1(uint32_t delay)
 }
 
 
+void setDelay2(uint32_t delay)
+{
+	*(MRT_INTVAL2) = delay;
+	*(MRT_INTVAL2) |= 0x1UL<<31;
+}
+
+
 void runTimer(uint32_t delay)
 {
 	mrt_counter = 0;

@@ -42,6 +42,10 @@
 #define MRT_INTVAL1 ((volatile uint32_t*)0x40004010UL) /*Interrupt register for the Multi Rate Timer Channel 1 */
 #define MRT_CTRL1 ((volatile uint32_t*)0x40004018UL) /*Control register for the Multi Rate Timer Channel 1 */
 #define MRT_STAT1 ((volatile uint32_t*)0x4000401CUL) /*Status register for the Multi Rate Timer Channel 1 */
+#define MRT_INTVAL2 ((volatile uint32_t*)0x40004020UL) /*Interrupt register for the Multi Rate Timer Channel 1 */
+#define MRT_CTRL2 ((volatile uint32_t*)0x40004028UL) /*Control register for the Multi Rate Timer Channel 1 */
+#define MRT_STAT2 ((volatile uint32_t*)0x4000402CUL) /*Status register for the Multi Rate Timer Channel 1 */
+#define MRT_TIMER2 ((volatile uint32_t*)0x40004024UL) /*Status register for the Multi Rate Timer Channel 1 */
 
 #define NVIC_ISER0 ((volatile uint32_t*)0xE000E100UL) /*Nested Vector Interrupt Controller register for enabling interrupts*/
 #define NVIC_ICER0 ((volatile uint32_t*)0xE000E180UL) /*Nested Vector Interrupt Controller register for disabling interrupts*/

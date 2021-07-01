@@ -43,9 +43,10 @@ void asHex(uint32_t v,char* res)
 		cnt++;
 		v = v << 4;
 	}
-	if (cnt==2)
+	while(cnt < 10)
 	{
 		res[cnt]=0x30;
+		cnt++;
 	}
 }
 

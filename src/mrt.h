@@ -5,5 +5,6 @@ void resetTimer();
 void initTimer();
 void setDelay0(uint32_t delay);
 void setDelay1(uint32_t delay);
+void setDelay2(uint32_t delay);
 void runTimer(uint32_t delay);
 #endif

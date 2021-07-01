@@ -142,38 +142,53 @@ int main(void) {
 	// set channel 1 as sample clock
 	setDelay1((uint32_t)(CLOCK_FREQ/SAMPLING_FREQ));
 
-	printf("LPC Synth ready\r\n\0");
+	printf("LPC Synth ready\r\n");
     uint8_t pcnt;
     pcnt=0;
     char nr[4];
 
-    /* test axHex */
-    uint32_t td = 0;
+    uint32_t t_phase = 0;
+    uint32_t t_sineval;
+    uint32_t tic;
+    uint32_t toc;
     char dbfr[11];
 
-    /*
-    while (td < 0xFFFFFFFF)
+    printf("computing sine vals\r\n");
+    while (t_phase < 0xFFFF)
     {
+    	setDelay2(0x7FFFFFFF);
+    	tic=*MRT_TIMER2;
+    	t_sineval = sineVal(t_phase);
+    	toc=*MRT_TIMER2;
+    	tic = tic - toc;
         for(uint8_t c=0;c<11;c++)
         {
         	*(dbfr + c) = 0;
         }
-        printf("Hex Test ");
-        asHex(td,dbfr);
+        printf("phase: ");
+
+        asHex(t_phase,dbfr);
+        printf(dbfr);
+        for(uint8_t c=0;c<11;c++)
+        {
+        	*(dbfr + c) = 0;
+        }
+        printf(", val: ");
+        asHex(t_sineval,dbfr);
+        printf(dbfr);
+
+        for(uint8_t c=0;c<11;c++)
+        {
+        	*(dbfr + c) = 0;
+        }
+        printf(", ticks: ");
+        asHex(tic,dbfr);
         printf(dbfr);
         printf("\r\n");
-        td++;
+        t_phase += 0x40;
     }
-    */
-    int8_t a = 56;
-    int8_t b = 12;
-    uint8_t c = a - b;
-    for(uint8_t c=0;c<11;c++)
-    {
-    	*(dbfr + c) = 0;
-    }
-    toChar(c,dbfr);
-    printf(dbfr);
+
+
     while(1) { // "OS"-Loop
     	//*NOT0 |= 0x1 << 2;
         //runTimer(1000);
