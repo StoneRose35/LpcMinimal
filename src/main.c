@@ -64,19 +64,38 @@ void UART0_IRQHandler(void)
 	uint8_t byteRead;
 	if (*USART_STAT0 & RXRDY)
 	{
-		/*read midi message*/
+		/*read console data*/
 		byteRead = *RXDAT0 & 0xFF;
-		/*
-		handleMidiNote(byteRead,&playedNote,&amplitude);
-		p_i = phaseIncrements[playedNote];
-		*/
+
 		//simple echo
 		sendChar(byteRead);
 	}
 	return;
 }
 
+void UART1_IRQHandler(void)
+{
+	uint8_t byteRead;
+	if (*USART_STAT1 & RXRDY)
+	{
+		/*read midi message*/
+		byteRead = *RXDAT1 & 0xFF;
+		printf("midi: ");
+	    char dbfr[11];
+        for(uint8_t c=0;c<11;c++)
+        {
+        	*(dbfr + c) = 0;
+        }
+        asHex(byteRead,dbfr);
+        printf(dbfr);
+        printf("\r\n");
+		handleMidiNote(byteRead,&playedNote,&amplitude);
+		p_i = phaseIncrements[playedNote];
 
+
+	}
+	return;
+}
 
 
 void setupPll()
@@ -87,7 +106,7 @@ void setupPll()
 	*SYSPLLCLKUEN = 0;
 	*SYSPLLCLKUEN = 1;
 
-	// Set Mutliplication values M: 5, P: 2
+	// Set Multiplication values M: 5, P: 2
 	// resulting in a frequency of the current controlled osc of 12Mhz*M*2*P = 240MHz
 	// output Frequency is 12MHz*5 = 60 MHz which is divided again to provide the system clock
 	*SYSPLLCTRL = 0x4 | (0x1 << 5);
@@ -116,6 +135,7 @@ int main(void) {
 
 	// enable  and reset used hardware components
 	resetUart0();
+	resetUart1();
 	resetSCT();
 	resetGPIO();
 	resetTimer();
@@ -128,7 +148,10 @@ int main(void) {
     initPwmDac();
 	amplitude = 0xFF;
 
-	//init Midi Interface
+	//init Console Interface
+	initConsoleUart();
+
+	// init midi receiver
 	initMidiUart();
 
 
@@ -153,7 +176,8 @@ int main(void) {
     uint32_t toc;
     char dbfr[11];
 
-    printf("computing sine vals\r\n");
+    //printf("computing sine vals\r\n");
+    /*
     while (t_phase < 0xFFFF)
     {
     	setDelay2(0x7FFFFFFF);
@@ -187,14 +211,14 @@ int main(void) {
         printf("\r\n");
         t_phase += 0x40;
     }
-
+    */
 
     while(1) { // "OS"-Loop
     	//*NOT0 |= 0x1 << 2;
         //runTimer(1000);
 
-    	play_adagio_for_tron();
-        pcnt++;
+    	//play_adagio_for_tron();
+        //pcnt++;
     }
     return 0 ;
 }

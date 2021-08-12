@@ -14,7 +14,7 @@ volatile uint8_t playedNote = 0;
 
 void handleMidiNote(uint8_t midi_cmd,volatile uint8_t* note_nr,volatile uint8_t* amplitude)
 {
-if (midi_cmd & 0x80) /*check for status byte*/
+if (midi_cmd & 0x80 == 0x80) /*check for status byte*/
 		{
 			midiCntr=0;
 			lastStatus = midi_cmd & 0xF0;

@@ -15,6 +15,7 @@
 #define CLOCK_FREQ (30000000)
 #define MRT_IRQN 10
 #define UART0_IRQN 3
+#define UART1_IRQN 4
 
 #define BAUD_RATE 9600/*31250 for MIDI*/
 #define UART_CLOCK_DIV (uint32_t)(CLOCK_FREQ/(BAUD_RATE*16))
@@ -74,16 +75,25 @@
 #define SCT_STATE ((volatile uint32_t*)0x50004044UL) /*State Register*/
 
 
-#define INTENSET ((volatile uint32_t*)0x4006400CUL) /*USART Interrupt set Register*/
-#define PINASSIGN0 ((volatile uint32_t*)0x4000C000UL) /*switch matrix assign register to set midi in*/
+
+#define PINASSIGN0 ((volatile uint32_t*)0x4000C000UL) /*switch matrix assign register to set console uart  pins*/
+#define PINASSIGN1 ((volatile uint32_t*)0x4000C004UL) /* switch matrix assign register to set midi uart input */
 #define UARTCLKDIV ((volatile uint32_t*)0x40048094UL) /*UART Clock Divider register*/
 #define UARTFRGMULT ((volatile uint32_t*)0x400480F4UL) /*UART Fraction clock divider  multiplicator*/
 #define UARTFRGDIV ((volatile uint32_t*)0x400480F0UL) /*UART Fraction clock divider  divisor*/
-#define BRG0 ((volatile uint32_t*)0x40064020UL) /*baud rate generation divider*/
+#define INTENSET0 ((volatile uint32_t*)0x4006400CUL) /*USART0 Interrupt set Register*/
+#define BRG0 ((volatile uint32_t*)0x40064020UL) /*UART0 baud rate generation divider*/
 #define UARTCFG0 ((volatile uint32_t*)0x40064000UL) /*UART0 Configuration register*/
 #define USART_STAT0 ((volatile uint32_t*)0x40064008UL) /*UART0 Status register*/
 #define RXDAT0 ((volatile uint32_t*)0x40064014UL) /*USART0 Receiver Data Buffer*/
 #define TXDAT0 ((volatile uint32_t*)0x4006401CUL) /*USART0 Transmitter Data Buffer*/
+
+#define INTENSET1 ((volatile uint32_t*)0x4006800CUL) /*USART0 Interrupt set Register*/
+#define BRG1 ((volatile uint32_t*)0x40068020UL) /*UART1 baud rate generation divider*/
+#define UARTCFG1 ((volatile uint32_t*)0x40068000UL) /*UART1 Configuration register*/
+#define USART_STAT1 ((volatile uint32_t*)0x40068008UL) /*UART1 Status register*/
+#define RXDAT1 ((volatile uint32_t*)0x40068014UL) /*USART1 Receiver Data Buffer*/
+#define TXDAT1 ((volatile uint32_t*)0x4006801CUL) /*USART1 Transmitter Data Buffer*/
 
 #define PDRUNCFG ((volatile uint32_t*)0x40048238UL) /*Power configuration register*/
 #define SYSPLLCLKSEL ((volatile uint32_t*)0x40048040UL) /*PLL Clock selection*/
