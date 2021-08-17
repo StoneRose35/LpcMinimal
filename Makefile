@@ -29,7 +29,7 @@ $(OUTDIR)/%.o: $(SRCDIR)/%.c
 
 clean:
 	rm -rf ./out/*.o
-	rm $(PROJECT_NAME).*
+	rm -f $(PROJECT_NAME).*
 
 program: bin
 	$(PROG) $(PFLAGS)	

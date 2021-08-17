@@ -25,6 +25,7 @@ volatile uint32_t phase;
 volatile uint16_t wave;
 volatile uint8_t amplitude;
 volatile uint8_t playedNote;
+volatile uint8_t last_midi_cmd;
 
 
 
@@ -75,23 +76,18 @@ void UART0_IRQHandler(void)
 
 void UART1_IRQHandler(void)
 {
-	uint8_t byteRead;
+	//uint32_t byteRead;
 	if (*USART_STAT1 & RXRDY)
 	{
 		/*read midi message*/
-		byteRead = *RXDAT1 & 0xFF;
-		printf("midi: ");
-	    char dbfr[11];
-        for(uint8_t c=0;c<11;c++)
-        {
-        	*(dbfr + c) = 0;
-        }
-        asHex(byteRead,dbfr);
-        printf(dbfr);
-        printf("\r\n");
-		handleMidiNote(byteRead,&playedNote,&amplitude);
-		p_i = phaseIncrements[playedNote];
+		//byteRead = *RXDAT1; // & 0xFF;
+		last_midi_cmd = *RXDAT1 & 0xFF;
+		//if ((byteRead & 0xF0) == 0x80)
+		//{
 
+		//}
+		handleMidiNote(last_midi_cmd);
+		//p_i = phaseIncrements[playedNote];
 
 	}
 	return;
@@ -214,11 +210,21 @@ int main(void) {
     */
 
     while(1) { // "OS"-Loop
-    	//*NOT0 |= 0x1 << 2;
-        //runTimer(1000);
-
-    	//play_adagio_for_tron();
-        //pcnt++;
+    	if (getMidiCntr() == 3)
+    	{
+			printf("midi command complete\r\n");
+			//char dbfr[11];
+			//for(uint8_t c=0;c<11;c++)
+			//{
+			//	*(dbfr + c) = 0;
+			//}
+			//asHex(last_midi_cmd,dbfr);
+			//printf(dbfr);
+			//printf("\r\n");
+			//last_midi_cmd = 0xFF;
+			processMidiCommand(&playedNote,&amplitude);
+			p_i = phaseIncrements[playedNote];
+    	}
     }
     return 0 ;
 }

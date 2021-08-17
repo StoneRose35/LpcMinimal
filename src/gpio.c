@@ -15,7 +15,7 @@ void initGpio()
 {
 
 	// PIO0_2 as output
-    *DIR0 |= 0x1 << 2;
+    //*DIR0 |= 0x1 << 2;
 
     // disable swdio in pio0_2
     *PINENABLE0 |= (0x1 << 3);
