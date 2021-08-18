@@ -107,22 +107,24 @@ void handleNoteOff(volatile uint8_t* note_nr,volatile uint8_t* amplitude)
 	{
 		if (*(notes+c)==noteBfr)
 		{
-			for(char cc=c;c<15;cc++)
+			for(char cc=c;cc<15;cc++)
 			{
 				*(notes+cc) = *(notes + cc + 1);
 			}
 
 			*(notes+15) = 0;
+
+			midiNotes--;
+			if (midiNotes > 0)
+			{
+				*note_nr = *(notes + midiNotes-1);
+			}
+			else
+			{
+				*note_nr=0;
+				*amplitude=0;
+			}
 		}
 	}
-	midiNotes--;
-	if (midiNotes > 0)
-	{
-		*note_nr = *(notes + midiNotes-1);
-	}
-	else
-	{
-		*note_nr=0;
-		*amplitude=0;
-	}
+
 }
