@@ -54,11 +54,6 @@ void initConsoleUart()
     // set the baud rate generator to 195
     *BRG0 = 0xc3-0x1;
 
-    // set the fractional divider part to 144/256
-    /*
-    *UARTFRGDIV = 0xff;
-    *UARTFRGMULT = 0x90;
-    */
 
     //clear the status
     *USART_STAT0 |= (0x1 << 5) | (0x1 << 11);
@@ -91,11 +86,6 @@ void initMidiUart()
     // set the baud rate generator to 60
     *BRG1 = 0x3c-0x1;
 
-    // set the fractional divider part to 144/256
-    /*
-    *UARTFRGDIV = 0xff;
-    *UARTFRGMULT = 0x90;
-    */
 
     //clear the status
     *USART_STAT1 |= (0x1 << 5) | (0x1 << 11);
