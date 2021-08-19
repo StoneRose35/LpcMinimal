@@ -142,7 +142,7 @@ int main(void) {
 
 	
     initPwmDac();
-	amplitude = 0xFF;
+	amplitude = 0x00;
 
 	//init Console Interface
 	initConsoleUart();
@@ -176,7 +176,7 @@ int main(void) {
 
     	if (getMidiCntr() == 3)
     	{
-			printf("midi command complete\r\n");
+			//printf("midi command complete\r\n");
 			//char dbfr[11];
 			//for(uint8_t c=0;c<11;c++)
 			//{
