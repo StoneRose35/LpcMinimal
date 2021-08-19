@@ -172,44 +172,8 @@ int main(void) {
     uint32_t toc;
     char dbfr[11];
 
-    //printf("computing sine vals\r\n");
-    /*
-    while (t_phase < 0xFFFF)
-    {
-    	setDelay2(0x7FFFFFFF);
-    	tic=*MRT_TIMER2;
-    	t_sineval = sineVal(t_phase);
-    	toc=*MRT_TIMER2;
-    	tic = tic - toc;
-        for(uint8_t c=0;c<11;c++)
-        {
-        	*(dbfr + c) = 0;
-        }
-        printf("phase: ");
-
-        asHex(t_phase,dbfr);
-        printf(dbfr);
-        for(uint8_t c=0;c<11;c++)
-        {
-        	*(dbfr + c) = 0;
-        }
-        printf(", val: ");
-        asHex(t_sineval,dbfr);
-        printf(dbfr);
-
-        for(uint8_t c=0;c<11;c++)
-        {
-        	*(dbfr + c) = 0;
-        }
-        printf(", ticks: ");
-        asHex(tic,dbfr);
-        printf(dbfr);
-        printf("\r\n");
-        t_phase += 0x40;
-    }
-    */
-
     while(1) { // "OS"-Loop
+
     	if (getMidiCntr() == 3)
     	{
 			printf("midi command complete\r\n");
