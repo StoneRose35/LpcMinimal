@@ -15,24 +15,24 @@ volatile uint8_t playedNote = 0;
 
 void handleMidiNote(uint8_t midi_cmd)
 {
-if ((midi_cmd & 0x80) == 0x80) /*check for status byte*/
+	if ((midi_cmd & 0x80) == 0x80) /*check for status byte*/
+	{
+		midiCntr=1;
+		lastStatus = midi_cmd & 0xF0;
+	}
+	else
+	{
+		if (midiCntr==1)
 		{
-			midiCntr=1;
-			lastStatus = midi_cmd & 0xF0;
+			noteBfr = midi_cmd;
+			midiCntr++;
 		}
-		else
+		else if (midiCntr==2)
 		{
-			if (midiCntr==1)
-			{
-				noteBfr = midi_cmd;
-				midiCntr++;
-			}
-			else if (midiCntr==2)
-			{
-				velBfr=midi_cmd;
-				midiCntr++;
-			}
+			velBfr=midi_cmd;
+			midiCntr++;
 		}
+	}
 }
 
 
@@ -83,7 +83,7 @@ void processMidiCommand(volatile uint8_t* note_nr,volatile uint8_t* amplitude)
 		default:
 			break;
 	}
-	midiCntr=0;
+	midiCntr=1;
 }
 
 uint8_t getCurrentNote(void)
